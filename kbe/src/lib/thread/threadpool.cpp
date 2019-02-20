@@ -1,22 +1,4 @@
-/*
-This source file is part of KBEngine
-For the latest info, see http://www.kbengine.org/
-
-Copyright (c) 2008-2016 KBEngine.
-
-KBEngine is free software: you can redistribute it and/or modify
-it under the terms of the GNU Lesser General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-KBEngine is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Lesser General Public License for more details.
- 
-You should have received a copy of the GNU Lesser General Public License
-along with KBEngine.  If not, see <http://www.gnu.org/licenses/>.
-*/
+// Copyright 2008-2018 Yolo Technologies, Inc. All Rights Reserved. https://www.comblockengine.com
 
 
 #include "threadpool.h"
@@ -366,6 +348,7 @@ void ThreadPool::onMainThreadTick()
 
 	std::copy(finiTaskList_.begin(), finiTaskList_.end(), std::back_inserter(finitasks));   
 	finiTaskList_.clear();
+	finiTaskList_count_ = 0;
 	THREAD_MUTEX_UNLOCK(finiTaskList_mutex_);	
 
 	std::vector<TPTask*>::iterator finiiter  = finitasks.begin();
@@ -379,19 +362,15 @@ void ThreadPool::onMainThreadTick()
 		case thread::TPTask::TPTASK_STATE_COMPLETED:
 			delete (*finiiter);
 			finiiter = finitasks.erase(finiiter);
-			--finiTaskList_count_;
 			break;
 			
 		case thread::TPTask::TPTASK_STATE_CONTINUE_CHILDTHREAD:
 			this->addTask((*finiiter));
 			finiiter = finitasks.erase(finiiter);
-			--finiTaskList_count_;
 			break;
 			
 		case thread::TPTask::TPTASK_STATE_CONTINUE_MAINTHREAD:
-			THREAD_MUTEX_LOCK(finiTaskList_mutex_);
-			finiTaskList_.push_back((*finiiter));
-			THREAD_MUTEX_UNLOCK(finiTaskList_mutex_);	
+			addFiniTask((*finiiter));
 			++finiiter;
 			break;
 			
@@ -700,6 +679,7 @@ void* TPThread::threadFunc(void* arg)
 
 			if(!task1)
 			{
+				tptd->state_ = THREAD_STATE_PENDING;
 				tptd->onTaskCompleted();
 				break;
 			}

@@ -1,22 +1,4 @@
-/*
-This source file is part of KBEngine
-For the latest info, see http://www.kbengine.org/
-
-Copyright (c) 2008-2016 KBEngine.
-
-KBEngine is free software: you can redistribute it and/or modify
-it under the terms of the GNU Lesser General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-KBEngine is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Lesser General Public License for more details.
- 
-You should have received a copy of the GNU Lesser General Public License
-along with KBEngine.  If not, see <http://www.gnu.org/licenses/>.
-*/
+// Copyright 2008-2018 Yolo Technologies, Inc. All Rights Reserved. https://www.comblockengine.com
 
 #ifndef KBENGINE_SCRIPT_H
 #define KBENGINE_SCRIPT_H
@@ -32,20 +14,33 @@ namespace KBEngine{ namespace script{
 
 /** 脚本系统路径 */
 #ifdef _LP64
-#define SCRIPT_PATH												\
-					L"../../res/scripts;"						\
-					L"../../res/scripts/common;"				\
-					L"../../res/scripts/common/lib-dynload;"	\
-					L"../../res/scripts/common/DLLs;"			\
-					L"../../res/scripts/common/Lib"
+#define SCRIPT_PATH													\
+					L"../../res/scripts;"							\
+					L"../../res/scripts/common;"					\
+					L"../../res/scripts/common/lib-dynload;"		\
+					L"../../res/scripts/common/DLLs;"				\
+					L"../../res/scripts/common/Lib;"				\
+					L"../../res/scripts/common/Lib/site-packages;"	\
+					L"../../res/scripts/common/Lib/dist-packages"
+
 #else
-#define SCRIPT_PATH												\
-					L"../../res/scripts;"						\
-					L"../../res/scripts/common;"				\
-					L"../../res/scripts/common/lib-dynload;"	\
-					L"../../res/scripts/common/DLLs;"			\
-					L"../../res/scripts/common/Lib"
+#define SCRIPT_PATH													\
+					L"../../res/scripts;"							\
+					L"../../res/scripts/common;"					\
+					L"../../res/scripts/common/lib-dynload;"		\
+					L"../../res/scripts/common/DLLs;"				\
+					L"../../res/scripts/common/Lib;"				\
+					L"../../res/scripts/common/Lib/site-packages;"	\
+					L"../../res/scripts/common/Lib/dist-packages"
+
 #endif
+
+#define APPEND_PYSYSPATH(PY_PATHS)									\
+	std::wstring pySysPaths = SCRIPT_PATH;							\
+	wchar_t* pwpySysResPath = strutil::char2wchar(const_cast<char*>(Resmgr::getSingleton().getPySysResPath().c_str()));	\
+	strutil::kbe_replace(pySysPaths, L"../../res/", pwpySysResPath);\
+	PY_PATHS += pySysPaths;											\
+	free(pwpySysResPath);
 
 
 PyObject * PyTuple_FromStringVector(const std::vector< std::string > & v);
@@ -125,6 +120,11 @@ public:
 	*/
 	INLINE PyObject* getExtraModule(void) const;
 
+	/**
+		获取脚本初始化时导入模块
+	*/
+	INLINE PyObject* getSysInitModules(void) const;
+
 	int run_simpleString(const char* command, std::string* retBufferPtr);
 	INLINE int run_simpleString(std::string command, std::string* retBufferPtr);
 
@@ -140,6 +140,7 @@ public:
 protected:
 	PyObject* 					module_;
 	PyObject*					extraModule_;		// 扩展脚本模块
+	PyObject*					sysInitModules_;	// 初始时sys加载的模块
 
 	ScriptStdOutErr*			pyStdouterr_;
 } ;
